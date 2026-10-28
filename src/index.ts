@@ -15,3 +15,8 @@ export {
   type StoredResponse,
 } from './stores/idempotency-store.interface';
 export { InMemoryIdempotencyStore, type InMemoryIdempotencyStoreOptions } from './stores/in-memory-idempotency.store';
+export {
+  RedisIdempotencyStore,
+  type RedisClientLike,
+  type RedisIdempotencyStoreOptions,
+} from './stores/redis-idempotency.store';
