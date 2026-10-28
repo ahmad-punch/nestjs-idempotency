@@ -1,0 +1,86 @@
+{
+  "name": "nestjs-idempotency",
+  "version": "0.1.0",
+  "description": "Idempotency-Key support for NestJS: safe retries for payment-style POST endpoints, with in-memory and Redis stores.",
+  "keywords": [
+    "nestjs",
+    "idempotency",
+    "idempotency-key",
+    "retries",
+    "payments",
+    "redis",
+    "interceptor"
+  ],
+  "license": "MIT",
+  "author": "Ahmad Salman Khan <ahmadsalman137@gmail.com>",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/ahmad-punch/nestjs-idempotency.git"
+  },
+  "homepage": "https://github.com/ahmad-punch/nestjs-idempotency#readme",
+  "bugs": {
+    "url": "https://github.com/ahmad-punch/nestjs-idempotency/issues"
+  },
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "require": "./dist/index.js",
+      "default": "./dist/index.js"
+    },
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE",
+    "CHANGELOG.md"
+  ],
+  "sideEffects": false,
+  "engines": {
+    "node": ">=20"
+  },
+  "packageManager": "pnpm@11.4.0",
+  "scripts": {
+    "build": "rm -rf dist && tsc -p tsconfig.build.json",
+    "lint": "eslint . && tsc --noEmit",
+    "test": "jest",
+    "test:cov": "jest --coverage",
+    "prepublishOnly": "pnpm run lint && pnpm test && pnpm run build"
+  },
+  "peerDependencies": {
+    "@nestjs/common": "^11.0.0",
+    "@nestjs/core": "^11.0.0",
+    "ioredis": "^5.0.0",
+    "reflect-metadata": "^0.1.13 || ^0.2.0",
+    "rxjs": "^7.2.0"
+  },
+  "peerDependenciesMeta": {
+    "ioredis": {
+      "optional": true
+    }
+  },
+  "devDependencies": {
+    "@eslint/js": "^10.0.1",
+    "@nestjs/common": "^11.2.7",
+    "@nestjs/core": "^11.2.7",
+    "@nestjs/platform-express": "^11.2.7",
+    "@nestjs/platform-fastify": "^11.2.7",
+    "@nestjs/testing": "^11.2.7",
+    "@types/ioredis-mock": "^8.2.8",
+    "@types/jest": "^30.0.0",
+    "@types/node": "^26.6.5",
+    "@types/supertest": "^7.2.1",
+    "eslint": "^10.13.0",
+    "ioredis": "^5.11.1",
+    "ioredis-mock": "^8.13.1",
+    "jest": "^30.5.2",
+    "reflect-metadata": "^0.2.2",
+    "rxjs": "^7.8.2",
+    "supertest": "^7.3.1",
+    "ts-jest": "^29.4.15",
+    "typescript": "~6.0.3",
+    "typescript-eslint": "^8.72.0"
+  }
+}
