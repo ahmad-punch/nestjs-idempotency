@@ -47,7 +47,8 @@
     "lint": "eslint . && tsc --noEmit",
     "test": "jest",
     "test:cov": "jest --coverage",
-    "prepublishOnly": "pnpm run lint && pnpm test && pnpm run build"
+    "prepublishOnly": "pnpm run lint && pnpm test && pnpm run build",
+    "example": "rm -rf dist-example && tsc -p tsconfig.example.json && node dist-example/example/main.js"
   },
   "peerDependencies": {
     "@nestjs/common": "^11.0.0",
