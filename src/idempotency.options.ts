@@ -5,7 +5,7 @@ import { defaultScope } from './scope';
 import { type IdempotencyStore } from './stores/idempotency-store.interface';
 
 export interface IdempotencyModuleOptions {
-  /** Where records and locks live. Use `RedisIdempotencyStore` in production. */
+  /** Where records and locks live. Use `RedisIdempotencyStore` or `PostgresIdempotencyStore` in production. */
   store: IdempotencyStore;
   /** How long a completed response is replayed for. Defaults to 86 400 (24 hours). */
   ttlSeconds?: number;
