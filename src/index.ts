@@ -20,3 +20,10 @@ export {
   type RedisClientLike,
   type RedisIdempotencyStoreOptions,
 } from './stores/redis-idempotency.store';
+export {
+  DEFAULT_POSTGRES_TABLE,
+  PostgresIdempotencyStore,
+  postgresIdempotencyTableSql,
+  type PostgresClientLike,
+  type PostgresIdempotencyStoreOptions,
+} from './stores/postgres-idempotency.store';
