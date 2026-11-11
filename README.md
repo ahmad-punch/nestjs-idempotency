@@ -192,6 +192,7 @@ pnpm example     # the demo above
 
 - Optional replay of streamed responses by buffering up to a configured size.
 - Opt-in storage of deterministic `4xx` responses, so a retried validation error is replayed instead of re-run.
+- Per-route `maxResponseBytes` through `@Idempotent()`, overriding the module default.
 
 ## Contributing
 

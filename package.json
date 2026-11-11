@@ -1,6 +1,6 @@
 {
   "name": "nestjs-idempotency",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "Idempotency-Key support for NestJS: safe retries for payment-style POST endpoints, with in-memory, Redis and Postgres stores.",
   "keywords": [
     "nestjs",
