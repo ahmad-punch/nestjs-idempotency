@@ -114,8 +114,9 @@ export class IdempotencyInterceptor implements NestInterceptor {
       return this.answerFromRecord(outcome.record, fingerprint, response);
     }
     const { lease } = outcome;
+    const label = `${this.options.keyHeader} "${key}" on ${request.method} ${request.path}`;
     return next.handle().pipe(
-      mergeMap((body) => from(this.saveResponse(lease, response, body, policy.ttlMs))),
+      mergeMap((body) => from(this.saveResponse(lease, response, body, policy.ttlMs, label))),
       catchError((error: unknown) => from(this.releaseAndRethrow(lease, error))),
     );
   }
@@ -141,8 +142,9 @@ export class IdempotencyInterceptor implements NestInterceptor {
     response: RawResponse,
     body: unknown,
     ttlMs: number,
+    label: string,
   ): Promise<unknown> {
-    const stored = this.capture(response, body);
+    const stored = this.capture(response, body, label);
     if (!stored) {
       await this.safely('release', () => this.options.store.release(lease));
       return body;
@@ -163,7 +165,8 @@ export class IdempotencyInterceptor implements NestInterceptor {
     throw error;
   }
 
-  private capture(response: RawResponse, body: unknown): StoredResponse | undefined {
+  /** `label` names the key and route in log lines. */
+  private capture(response: RawResponse, body: unknown, label: string): StoredResponse | undefined {
     if (response.headersSent || response.sent) {
       this.logger.warn(
         'The handler wrote the response itself (via @Res()), so it cannot be stored for replay. ' +
@@ -175,17 +178,25 @@ export class IdempotencyInterceptor implements NestInterceptor {
       this.logger.warn('Streaming responses cannot be stored for replay; the idempotency key was released.');
       return undefined;
     }
-    const serialized = toJsonValue(body);
+    const serialized = toJson(body);
     if (!serialized.ok) {
       this.logger.warn('The response body is not JSON-serialisable, so it cannot be stored for replay.');
+      return undefined;
+    }
+    const size = serialized.json === undefined ? 0 : Buffer.byteLength(serialized.json, 'utf8');
+    if (size > this.options.maxResponseBytes) {
+      this.logger.warn(
+        `Response for ${label} is ${size} bytes, over the maxResponseBytes limit of ` +
+          `${this.options.maxResponseBytes}; it was not stored and the key was released.`,
+      );
       return undefined;
     }
     const stored: StoredResponse = {
       statusCode: response.statusCode ?? 200,
       headers: this.pickResponseHeaders(response),
     };
-    if (serialized.value !== undefined) {
-      stored.body = serialized.value;
+    if (serialized.json !== undefined) {
+      stored.body = JSON.parse(serialized.json) as unknown;
     }
     return stored;
   }
@@ -251,13 +262,15 @@ export class IdempotencyInterceptor implements NestInterceptor {
   }
 }
 
-function toJsonValue(body: unknown): { ok: true; value: unknown } | { ok: false } {
+/** The body as JSON text; `json` is undefined when there is no body to store. */
+function toJson(body: unknown): { ok: true; json: string | undefined } | { ok: false } {
   if (body === undefined) {
-    return { ok: true, value: undefined };
+    return { ok: true, json: undefined };
   }
   try {
-    const json = JSON.stringify(body);
-    return { ok: true, value: json === undefined ? undefined : (JSON.parse(json) as unknown) };
+    // JSON.stringify returns undefined for functions and symbols, despite its type.
+    const json: string | undefined = JSON.stringify(body);
+    return { ok: true, json };
   } catch {
     return { ok: false };
   }

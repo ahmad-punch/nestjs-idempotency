@@ -26,6 +26,12 @@ export interface IdempotencyModuleOptions {
   /** Value of `Retry-After` on 409 responses. Defaults to 1. */
   retryAfterSeconds?: number;
   /**
+   * Largest response body, in bytes of JSON, that is stored for replay.
+   * A larger response is still sent, but not stored: a warning is logged
+   * and the key is released. Defaults to no limit.
+   */
+  maxResponseBytes?: number;
+  /**
    * HTTP methods covered when the interceptor is bound to a route that has
    * no `@Idempotent()` decorator, for example when registered globally.
    * Defaults to `POST` and `PATCH`.
@@ -43,6 +49,7 @@ export interface ResolvedIdempotencyOptions {
   responseHeaders: string[];
   lockTtlSeconds: number;
   retryAfterSeconds: number;
+  maxResponseBytes: number;
   methods: string[];
 }
 
@@ -65,6 +72,7 @@ export function resolveOptions(options: IdempotencyModuleOptions): ResolvedIdemp
     ),
     lockTtlSeconds: positive('lockTtlSeconds', options.lockTtlSeconds ?? 60),
     retryAfterSeconds: positive('retryAfterSeconds', options.retryAfterSeconds ?? 1),
+    maxResponseBytes: byteLimit(options.maxResponseBytes),
     methods: (options.methods ?? ['POST', 'PATCH']).map((method) => method.toUpperCase()),
   };
 }
@@ -72,6 +80,19 @@ export function resolveOptions(options: IdempotencyModuleOptions): ResolvedIdemp
 export function positive(name: string, value: number): number {
   if (!Number.isFinite(value) || value <= 0) {
     throw new Error(`IdempotencyModule option "${name}" must be a positive number of seconds; got ${value}.`);
+  }
+  return value;
+}
+
+function byteLimit(value: number | undefined): number {
+  if (value === undefined) {
+    return Number.POSITIVE_INFINITY;
+  }
+  if (!Number.isSafeInteger(value) || value <= 0) {
+    throw new Error(
+      `IdempotencyModule option "maxResponseBytes" must be a positive whole number of bytes; got ${value}. ` +
+        'Leave it unset for no limit.',
+    );
   }
   return value;
 }

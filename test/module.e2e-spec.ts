@@ -74,12 +74,19 @@ describe('IdempotencyModule.forRootAsync with a global interceptor', () => {
   });
 });
 
-describe('IdempotencyModule.forRoot without a store', () => {
+describe('IdempotencyModule.forRoot with invalid options', () => {
   it('fails at startup with a message that says what to pass', async () => {
     const build = Test.createTestingModule({
       imports: [IdempotencyModule.forRoot({} as never)],
     }).compile();
     await expect(build).rejects.toThrow(/needs a store/);
+  });
+
+  it.each([0, -1, 1.5, Number.NaN])('rejects maxResponseBytes of %p at startup', async (maxResponseBytes) => {
+    const build = Test.createTestingModule({
+      imports: [IdempotencyModule.forRoot({ store: new InMemoryIdempotencyStore({ sweepIntervalMs: 0 }), maxResponseBytes })],
+    }).compile();
+    await expect(build).rejects.toThrow(/"maxResponseBytes" must be a positive whole number of bytes/);
   });
 });
 

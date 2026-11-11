@@ -1,4 +1,4 @@
-import { type INestApplication } from '@nestjs/common';
+import { type INestApplication, Logger } from '@nestjs/common';
 import { APP_GUARD } from '@nestjs/core';
 import { Test } from '@nestjs/testing';
 import request from 'supertest';
@@ -171,5 +171,70 @@ describe('Idempotency on Express', () => {
     await post('/payments/plain', 'key-1').expect(201);
     await post('/payments/plain', 'key-1').expect(201);
     expect(payments.executions).toBe(2);
+  });
+});
+
+describe('Idempotency with maxResponseBytes', () => {
+  const bodyBytes = Buffer.byteLength(JSON.stringify({ id: 'pay_1', amount: 1000, currency: 'usd' }));
+  let app: INestApplication<App>;
+  let store: InMemoryIdempotencyStore;
+  let payments: PaymentsService;
+  let warn: jest.SpyInstance;
+
+  const start = async (maxResponseBytes: number) => {
+    store = new InMemoryIdempotencyStore();
+    const moduleRef = await Test.createTestingModule({
+      imports: [IdempotencyModule.forRoot({ store, maxResponseBytes })],
+      controllers: [PaymentsController],
+      providers: [PaymentsService],
+    }).compile();
+    app = moduleRef.createNestApplication({ logger: false });
+    await app.init();
+    payments = app.get(PaymentsService);
+  };
+
+  const post = (key: string) =>
+    request(app.getHttpServer()).post('/payments').set('Idempotency-Key', key).send(payment);
+
+  beforeEach(() => {
+    warn = jest.spyOn(Logger.prototype, 'warn').mockImplementation(() => undefined);
+  });
+
+  afterEach(async () => {
+    warn.mockRestore();
+    await app.close();
+    store.close();
+  });
+
+  it('sends but does not store a response over the limit, and frees the key', async () => {
+    await start(bodyBytes - 1);
+    const first = await post('key-1').expect(201);
+    const retry = await post('key-1').expect(201);
+
+    expect(first.body).toEqual({ id: 'pay_1', amount: 1000, currency: 'usd' });
+    expect(retry.headers['idempotent-replayed']).toBeUndefined();
+    expect(payments.executions).toBe(2);
+    expect(store.size).toBe(0);
+  });
+
+  it('logs one line naming the key, the route, the size and the limit', async () => {
+    await start(bodyBytes - 1);
+    await post('key-1').expect(201);
+
+    expect(warn).toHaveBeenCalledTimes(1);
+    expect(warn).toHaveBeenCalledWith(
+      `Response for Idempotency-Key "key-1" on POST /payments is ${bodyBytes} bytes, over the ` +
+        `maxResponseBytes limit of ${bodyBytes - 1}; it was not stored and the key was released.`,
+    );
+  });
+
+  it('stores a response exactly at the limit', async () => {
+    await start(bodyBytes);
+    await post('key-1').expect(201);
+    const replay = await post('key-1').expect(201);
+
+    expect(replay.headers['idempotent-replayed']).toBe('true');
+    expect(payments.executions).toBe(1);
+    expect(warn).not.toHaveBeenCalled();
   });
 });
